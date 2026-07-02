@@ -5,3 +5,6 @@ expect fun copyToClipboard(text: String)
 
 /** Triggers a browser download of [text] as a file named [fileName]. Implemented per target. */
 expect fun downloadTextFile(fileName: String, text: String)
+
+/** Opens [url] in a new browser tab. Implemented per target. */
+expect fun openUrl(url: String)

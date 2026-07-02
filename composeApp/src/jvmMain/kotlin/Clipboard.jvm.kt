@@ -10,3 +10,7 @@ actual fun copyToClipboard(text: String) {
 actual fun downloadTextFile(fileName: String, text: String) {
     // No-op: not used by the tooling entry points.
 }
+
+actual fun openUrl(url: String) {
+    // No-op: not used by the tooling entry points.
+}

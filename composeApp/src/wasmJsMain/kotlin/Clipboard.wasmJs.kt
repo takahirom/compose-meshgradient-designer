@@ -31,3 +31,10 @@ private fun triggerDownload(fileName: String, text: String): Unit = js(
 actual fun downloadTextFile(fileName: String, text: String) {
     triggerDownload(fileName, text)
 }
+
+private fun openInNewTab(url: String): Unit =
+    js("{ window.open(url, '_blank', 'noopener'); }")
+
+actual fun openUrl(url: String) {
+    openInNewTab(url)
+}

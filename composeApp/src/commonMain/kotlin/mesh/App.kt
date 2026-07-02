@@ -50,7 +50,11 @@ import mesh.ui.ImportDialog
 import mesh.ui.MeshTheme
 import mesh.ui.copyToClipboard
 import mesh.ui.downloadTextFile
+import mesh.ui.openUrl
 import kotlin.math.floor
+
+/** Where this project lives; linked from the header so users can star it. */
+private const val GITHUB_URL = "https://github.com/takahirom/compose-meshgradient-designer"
 
 /**
  * Root of the MeshGradient Designer tool.
@@ -341,6 +345,7 @@ private fun EditorPane(
                 color = MaterialTheme.colorScheme.onBackground,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { openUrl(GITHUB_URL) }) { Text("★ Star on GitHub") }
                 OutlinedButton(onClick = onImport) { Text("Import") }
                 OutlinedButton(onClick = onExport) { Text("Export") }
             }
