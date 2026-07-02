@@ -115,8 +115,9 @@ object KotlinCodeGenerator {
      *
      * [LoopMode.PingPong] emits the keyframes as-is with `RepeatMode.Reverse`; [LoopMode.Cycle]
      * appends the first keyframe and uses `RepeatMode.Restart` so the wrap is seamless. The painter
-     * is wrapped in `remember(frame)` so it is only re-created when the interpolated frame actually
-     * changes, minimizing per-frame allocations while still repainting on every step.
+     * is created once (`remember` without keys) and samples the animation by reading `progress`
+     * inside its block: `MeshGradientPainter` executes the block on every draw, so each frame
+     * invalidates the draw phase only — no recomposition and no painter re-allocation.
      */
     internal fun generateAnimated(state: AnimationState, includeImports: Boolean = true): String =
         buildString {
@@ -207,11 +208,14 @@ object KotlinCodeGenerator {
             appendLine("            repeatMode = RepeatMode.$repeatMode,")
             appendLine("        ),")
             appendLine("    )")
-            appendLine("    val frame = sampleFrame(keyframes, progress)")
-            appendLine("    val painter = remember(frame) {")
+            appendLine("    // MeshGradientPainter runs this block on every draw. Reading `progress`")
+            appendLine("    // (snapshot state) inside it means each animation frame invalidates the")
+            appendLine("    // draw phase only: no recomposition and no painter re-allocation.")
+            appendLine("    val painter = remember {")
             append("        MeshGradientPainter(")
             append("rows = $rows, columns = $columns, ")
             appendLine("hasBicubicColor = ${state.hasBicubicColor}) {")
+            appendLine("            val frame = sampleFrame(keyframes, progress)")
             appendLine("            for (row in 0..$rows) {")
             appendLine("                for (column in 0..$columns) {")
             appendLine("                    val index = row * (${columns} + 1) + column")

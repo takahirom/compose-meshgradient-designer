@@ -30,7 +30,11 @@ class AnimationCodeGenTest {
         assertTrue(code.contains("private val keyframes: List<MeshFrame>"))
         assertTrue(code.contains("fun lerpFrame("))
         assertTrue(code.contains("fun sampleFrame("))
-        assertTrue(code.contains("remember(frame)"))
+        // The painter is created once and samples the animation inside its draw block, so each
+        // frame is a draw-phase invalidation only (no recomposition, no painter re-allocation).
+        assertTrue(code.contains("val painter = remember {"))
+        assertTrue(code.contains("val frame = sampleFrame(keyframes, progress)"))
+        assertFalse(code.contains("remember(frame)"))
     }
 
     @Test

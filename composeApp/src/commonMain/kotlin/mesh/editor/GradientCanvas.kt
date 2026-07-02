@@ -20,12 +20,16 @@ import androidx.compose.ui.draw.paint
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.MeshGradientPainter
+import androidx.compose.ui.graphics.MeshGradientScope
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import mesh.model.BezierDirection
+import mesh.model.LoopMode
 import mesh.model.MeshData
+import mesh.model.MeshInterpolator
+import mesh.model.SegmentEasing
 import kotlin.math.roundToInt
 
 /** Diameter of the draggable handles. */
@@ -36,6 +40,25 @@ private val HandleSize = 16.dp
  * where handles dragged outside the 0..1 mesh area remain visible and grabbable.
  */
 private const val GradientFraction = 0.8f
+
+/** Feeds every vertex of [mesh] into this [MeshGradientScope]. */
+private fun MeshGradientScope.applyMesh(mesh: MeshData) {
+    for (row in 0..mesh.rows) {
+        for (column in 0..mesh.columns) {
+            val index = mesh.indexOf(row, column)
+            setVertex(
+                row,
+                column,
+                position = mesh.positions[index],
+                color = mesh.colors[index],
+                leftControlPoint = mesh.leftBezierOffsets[index],
+                topControlPoint = mesh.topBezierOffsets[index],
+                rightControlPoint = mesh.rightBezierOffsets[index],
+                bottomControlPoint = mesh.bottomBezierOffsets[index],
+            )
+        }
+    }
+}
 
 /**
  * Builds a [MeshGradientPainter] for [mesh], re-created whenever [mesh] or [hasBicubicColor]
@@ -49,41 +72,54 @@ fun rememberMeshGradientPainter(mesh: MeshData, hasBicubicColor: Boolean): Paint
             columns = mesh.columns,
             hasBicubicColor = hasBicubicColor,
         ) {
-            for (row in 0..mesh.rows) {
-                for (column in 0..mesh.columns) {
-                    val index = mesh.indexOf(row, column)
-                    setVertex(
-                        row,
-                        column,
-                        position = mesh.positions[index],
-                        color = mesh.colors[index],
-                        leftControlPoint = mesh.leftBezierOffsets[index],
-                        topControlPoint = mesh.topBezierOffsets[index],
-                        rightControlPoint = mesh.rightBezierOffsets[index],
-                        bottomControlPoint = mesh.bottomBezierOffsets[index],
-                    )
-                }
-            }
+            applyMesh(mesh)
         }
     }
 
 /**
- * The interactive gradient preview: renders [mesh] and, when [showHandles] is true, overlays the
- * draggable vertex and bezier handles ported from the Android reference sample.
+ * Builds a single [MeshGradientPainter] that samples the keyframe animation itself.
+ *
+ * [MeshGradientPainter] executes its block on every draw, so reading [progress] (snapshot state)
+ * inside the block makes each animation frame invalidate the draw phase only — no recomposition
+ * and no painter re-allocation. This is intentionally the exact pattern the generated code uses,
+ * so the live preview doubles as a regression check for it.
+ */
+@Composable
+fun rememberAnimatedMeshGradientPainter(
+    keyframes: List<MeshData>,
+    easings: List<SegmentEasing>,
+    loopMode: LoopMode,
+    hasBicubicColor: Boolean,
+    progress: () -> Float,
+): Painter = remember(keyframes, easings, loopMode, hasBicubicColor) {
+    val first = keyframes.first()
+    MeshGradientPainter(
+        rows = first.rows,
+        columns = first.columns,
+        hasBicubicColor = hasBicubicColor,
+    ) {
+        applyMesh(MeshInterpolator.sample(keyframes, loopMode, progress(), easings))
+    }
+}
+
+/**
+ * The interactive gradient preview: renders [painter] and, when [showHandles] is true, overlays
+ * the draggable vertex and bezier handles (positioned from [mesh]) ported from the Android
+ * reference sample. During playback the caller passes an animated painter while [mesh] stays the
+ * selected keyframe.
  *
  * @param onMeshChange invoked with an updated [MeshData] whenever the user drags a handle.
  * @param onVertexTap invoked with a vertex index when the user taps a vertex (to recolor it).
  */
 @Composable
 fun GradientCanvas(
+    painter: Painter,
     mesh: MeshData,
-    hasBicubicColor: Boolean,
     showHandles: Boolean,
     onMeshChange: (MeshData) -> Unit,
     onVertexTap: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val painter = rememberMeshGradientPainter(mesh, hasBicubicColor)
     BoxWithConstraints(modifier.fillMaxSize()) {
         // While editing, the gradient is inset so vertices dragged outside the 0..1 mesh area
         // (a legitimate design) keep their handles visible in the surrounding margin. During

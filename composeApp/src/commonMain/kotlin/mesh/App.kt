@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mesh.codegen.KotlinCodeGenerator
@@ -35,6 +36,8 @@ import mesh.editor.ColorPickerDialog
 import mesh.editor.ControlPanel
 import mesh.editor.GradientCanvas
 import mesh.editor.TimelinePanel
+import mesh.editor.rememberAnimatedMeshGradientPainter
+import mesh.editor.rememberMeshGradientPainter
 import mesh.model.AnimationState
 import mesh.model.LoopMode
 import mesh.model.MeshData
@@ -200,20 +203,27 @@ fun App() {
                 }
             }
 
-            // While playing, show the interpolated mesh and hide handles; otherwise edit the
-            // selected keyframe. The interpolated MeshData is a fresh value each frame, so the
-            // painter (remember-keyed on the mesh) is only rebuilt when the frame actually changes.
+            // While playing, a single painter samples the animation by reading `progress` inside
+            // its draw block: each frame invalidates the draw phase only (no recomposition, no
+            // painter re-allocation). This mirrors the generated code exactly, so the preview
+            // doubles as a regression check for that pattern. While editing, the painter shows
+            // the selected keyframe and is rebuilt on every edit as before.
             val playing = isPlaying && keyframes.size >= 2
-            val displayMesh =
-                if (playing) {
-                    MeshInterpolator.sample(keyframes, loopMode, progress, easings)
-                } else {
-                    selected
-                }
+            val editPainter = rememberMeshGradientPainter(selected, hasBicubicColor)
+            val playbackPainter = rememberAnimatedMeshGradientPainter(
+                keyframes = keyframes,
+                easings = easings,
+                loopMode = loopMode,
+                hasBicubicColor = hasBicubicColor,
+                progress = { progress },
+            )
+            val activePainter = if (playing) playbackPainter else editPainter
 
             val animation =
                 AnimationState(keyframes, hasBicubicColor, durationPerSegment, loopMode, easings)
-            val code = KotlinCodeGenerator.generate(animation)
+            // Regenerating the code string is proportional to the keyframe count; without remember
+            // it would re-run on every recomposition (60x/s while the timeline is scrubbing).
+            val code = remember(animation) { KotlinCodeGenerator.generate(animation) }
 
             val timeline: @Composable (Modifier) -> Unit = { m ->
                 TimelinePanel(
@@ -246,7 +256,8 @@ fun App() {
                 if (stacked) {
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                         EditorPane(
-                            displayMesh, hasBicubicColor, showHandles, showHandles && !playing,
+                            activePainter, selected, hasBicubicColor,
+                            showHandles, showHandles && !playing,
                             rows, columns,
                             onMeshChange = { updateSelected(it) },
                             onVertexTap = { selectedVertex = it },
@@ -268,7 +279,8 @@ fun App() {
                 } else {
                     Row(Modifier.fillMaxSize()) {
                         EditorPane(
-                            displayMesh, hasBicubicColor, showHandles, showHandles && !playing,
+                            activePainter, selected, hasBicubicColor,
+                            showHandles, showHandles && !playing,
                             rows, columns,
                             onMeshChange = { updateSelected(it) },
                             onVertexTap = { selectedVertex = it },
@@ -314,6 +326,7 @@ fun App() {
 
 @Composable
 private fun EditorPane(
+    painter: Painter,
     mesh: MeshData,
     hasBicubicColor: Boolean,
     showHandles: Boolean,
@@ -352,8 +365,8 @@ private fun EditorPane(
         }
         // Keep the canvas square so normalized 0..1 coordinates map to visible drag distances.
         GradientCanvas(
+            painter = painter,
             mesh = mesh,
-            hasBicubicColor = hasBicubicColor,
             showHandles = handlesVisible,
             onMeshChange = onMeshChange,
             onVertexTap = onVertexTap,
