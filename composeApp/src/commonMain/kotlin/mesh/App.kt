@@ -39,6 +39,7 @@ import mesh.model.AnimationState
 import mesh.model.LoopMode
 import mesh.model.MeshData
 import mesh.model.MeshInterpolator
+import mesh.model.Presets
 import mesh.model.SegmentEasing
 import mesh.model.generateLinearMeshState
 import mesh.model.resizedTo
@@ -63,16 +64,27 @@ import kotlin.math.floor
 fun App() {
     MeshTheme {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            // Start with the Aurora preset already playing so first-time visitors immediately
+            // see an animated gradient instead of a static default.
+            val initialPreset = remember { Presets.all.first { it.name == "Aurora" }.build() }
+
             // Shared editing state. rows/columns are shared across all keyframes.
-            var keyframes by remember { mutableStateOf(listOf(generateLinearMeshState(2, 1))) }
+            var keyframes by remember { mutableStateOf(initialPreset.keyframes) }
             var selectedIndex by remember { mutableIntStateOf(0) }
-            var hasBicubicColor by remember { mutableStateOf(true) }
+            var hasBicubicColor by remember { mutableStateOf(initialPreset.hasBicubicColor) }
             var showHandles by remember { mutableStateOf(true) }
-            var loopMode by remember { mutableStateOf(LoopMode.PingPong) }
+            var loopMode by remember { mutableStateOf(initialPreset.loopMode) }
             // Per-keyframe outgoing easing, kept index-aligned with keyframes by every list op.
-            var easings by remember { mutableStateOf(listOf(SegmentEasing.Linear)) }
-            var durationPerSegment by remember { mutableIntStateOf(2000) }
-            var isPlaying by remember { mutableStateOf(false) }
+            var easings by remember {
+                mutableStateOf(
+                    List(initialPreset.keyframes.size) { index ->
+                        initialPreset.easings.getOrElse(index) { SegmentEasing.Linear }
+                    },
+                )
+            }
+            var durationPerSegment by
+                remember { mutableIntStateOf(initialPreset.durationMillisPerSegment) }
+            var isPlaying by remember { mutableStateOf(initialPreset.keyframes.size >= 2) }
             var progress by remember { mutableFloatStateOf(0f) }
             var selectedVertex by remember { mutableStateOf<Int?>(null) }
             var showImport by remember { mutableStateOf(false) }
