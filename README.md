@@ -1,5 +1,7 @@
 # MeshGradient Designer
 
+https://github.com/user-attachments/assets/5bd5cf52-d1e8-4f62-8bd2-2b197659c27a
+
 A browser-based design tool for Compose mesh gradients. Edit a mesh gradient visually on the
 left — drag vertices, bend edges with bezier handles, animate between keyframes — and copy
 ready-to-paste Kotlin code on the right.
