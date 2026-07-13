@@ -26,19 +26,21 @@ import androidx.compose.ui.unit.dp
  * @param currentColor the color to seed the sliders with.
  * @param onColorPicked invoked with the chosen color when the user confirms.
  * @param onDismiss invoked when the dialog is dismissed without a choice.
+ * @param title the dialog title; also reused by the key-color generator flow.
  */
 @Composable
 fun ColorPickerDialog(
     currentColor: Color,
     onColorPicked: (Color) -> Unit,
     onDismiss: () -> Unit,
+    title: String = "Vertex color",
 ) {
     var red by remember { mutableFloatStateOf(currentColor.red) }
     var green by remember { mutableFloatStateOf(currentColor.green) }
     var blue by remember { mutableFloatStateOf(currentColor.blue) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Vertex color") },
+        title = { Text(title) },
         text = {
             Column(Modifier.fillMaxWidth()) {
                 Box(Modifier.fillMaxWidth().height(48.dp).background(Color(red, green, blue)))

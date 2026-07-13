@@ -49,6 +49,7 @@ fun ControlPanel(
     onShowHandlesChange: (Boolean) -> Unit,
     onColorClick: (Int) -> Unit,
     onRandomize: () -> Unit,
+    onGenerateFromKeyColor: () -> Unit,
     onApplyPreset: (AnimationState) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -107,6 +108,18 @@ fun ControlPanel(
         Spacer(Modifier.height(8.dp))
         OutlinedButton(onClick = onRandomize, modifier = Modifier.fillMaxWidth()) {
             Text("Randomize colors")
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Text("Generate from key color", fontWeight = FontWeight.SemiBold)
+        Text(
+            "Pick one key color and a matching palette and animation are generated for you.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Spacer(Modifier.height(4.dp))
+        OutlinedButton(onClick = onGenerateFromKeyColor, modifier = Modifier.fillMaxWidth()) {
+            Text("Generate animation from key color")
         }
 
         Spacer(Modifier.height(8.dp))

@@ -39,6 +39,7 @@ import mesh.editor.TimelinePanel
 import mesh.editor.rememberAnimatedMeshGradientPainter
 import mesh.editor.rememberMeshGradientPainter
 import mesh.model.AnimationState
+import mesh.model.KeyColorAnimation
 import mesh.model.LoopMode
 import mesh.model.MeshData
 import mesh.model.MeshInterpolator
@@ -95,6 +96,7 @@ fun App() {
             var progress by remember { mutableFloatStateOf(0f) }
             var selectedVertex by remember { mutableStateOf<Int?>(null) }
             var showImport by remember { mutableStateOf(false) }
+            var showKeyColorPicker by remember { mutableStateOf(false) }
 
             val safeIndex = selectedIndex.coerceIn(0, keyframes.lastIndex)
             val selected = keyframes[safeIndex]
@@ -266,6 +268,7 @@ fun App() {
                             onBicubic = { hasBicubicColor = it },
                             onShowHandles = { showHandles = it },
                             onRandomize = { updateSelected(generateLinearMeshState(rows, columns)) },
+                            onGenerateFromKeyColor = { showKeyColorPicker = true },
                             onPreset = ::applyPreset,
                             onExport = ::exportProject,
                             onImport = { showImport = true },
@@ -289,6 +292,7 @@ fun App() {
                             onBicubic = { hasBicubicColor = it },
                             onShowHandles = { showHandles = it },
                             onRandomize = { updateSelected(generateLinearMeshState(rows, columns)) },
+                            onGenerateFromKeyColor = { showKeyColorPicker = true },
                             onPreset = ::applyPreset,
                             onExport = ::exportProject,
                             onImport = { showImport = true },
@@ -312,6 +316,20 @@ fun App() {
                         },
                     )
                 }
+            }
+
+            if (showKeyColorPicker) {
+                // Seed the picker with the first vertex color so re-generating tweaks the
+                // current mood instead of always starting from the same color.
+                ColorPickerDialog(
+                    currentColor = selected.colors.first(),
+                    title = "Key color",
+                    onDismiss = { showKeyColorPicker = false },
+                    onColorPicked = { color ->
+                        showKeyColorPicker = false
+                        applyPreset(KeyColorAnimation.generate(color))
+                    },
+                )
             }
 
             if (showImport) {
@@ -340,6 +358,7 @@ private fun EditorPane(
     onBicubic: (Boolean) -> Unit,
     onShowHandles: (Boolean) -> Unit,
     onRandomize: () -> Unit,
+    onGenerateFromKeyColor: () -> Unit,
     onPreset: (AnimationState) -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
@@ -388,6 +407,7 @@ private fun EditorPane(
             onShowHandlesChange = onShowHandles,
             onColorClick = onVertexTap,
             onRandomize = onRandomize,
+            onGenerateFromKeyColor = onGenerateFromKeyColor,
             onApplyPreset = onPreset,
             modifier = Modifier.wrapContentHeight()
                 .background(MaterialTheme.colorScheme.surface),
