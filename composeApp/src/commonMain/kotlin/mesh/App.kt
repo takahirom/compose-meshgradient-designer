@@ -97,6 +97,9 @@ fun App() {
             var selectedVertex by remember { mutableStateOf<Int?>(null) }
             var showImport by remember { mutableStateOf(false) }
             var showKeyColorPicker by remember { mutableStateOf(false) }
+            // How dramatic key-color generation should be (0 = calm, 1 = vivid). Kept outside
+            // the dialog so the choice survives re-generating with a tweaked color.
+            var keyColorDynamism by remember { mutableFloatStateOf(0.5f) }
 
             val safeIndex = selectedIndex.coerceIn(0, keyframes.lastIndex)
             val selected = keyframes[safeIndex]
@@ -268,6 +271,8 @@ fun App() {
                             onBicubic = { hasBicubicColor = it },
                             onShowHandles = { showHandles = it },
                             onRandomize = { updateSelected(generateLinearMeshState(rows, columns)) },
+                            keyColorDynamism = keyColorDynamism,
+                            onKeyColorDynamismChange = { keyColorDynamism = it },
                             onGenerateFromKeyColor = { showKeyColorPicker = true },
                             onPreset = ::applyPreset,
                             onExport = ::exportProject,
@@ -292,6 +297,8 @@ fun App() {
                             onBicubic = { hasBicubicColor = it },
                             onShowHandles = { showHandles = it },
                             onRandomize = { updateSelected(generateLinearMeshState(rows, columns)) },
+                            keyColorDynamism = keyColorDynamism,
+                            onKeyColorDynamismChange = { keyColorDynamism = it },
                             onGenerateFromKeyColor = { showKeyColorPicker = true },
                             onPreset = ::applyPreset,
                             onExport = ::exportProject,
@@ -327,7 +334,7 @@ fun App() {
                     onDismiss = { showKeyColorPicker = false },
                     onColorPicked = { color ->
                         showKeyColorPicker = false
-                        applyPreset(KeyColorAnimation.generate(color))
+                        applyPreset(KeyColorAnimation.generate(color, keyColorDynamism))
                     },
                 )
             }
@@ -358,6 +365,8 @@ private fun EditorPane(
     onBicubic: (Boolean) -> Unit,
     onShowHandles: (Boolean) -> Unit,
     onRandomize: () -> Unit,
+    keyColorDynamism: Float,
+    onKeyColorDynamismChange: (Float) -> Unit,
     onGenerateFromKeyColor: () -> Unit,
     onPreset: (AnimationState) -> Unit,
     onExport: () -> Unit,
@@ -407,6 +416,8 @@ private fun EditorPane(
             onShowHandlesChange = onShowHandles,
             onColorClick = onVertexTap,
             onRandomize = onRandomize,
+            keyColorDynamism = keyColorDynamism,
+            onKeyColorDynamismChange = onKeyColorDynamismChange,
             onGenerateFromKeyColor = onGenerateFromKeyColor,
             onApplyPreset = onPreset,
             modifier = Modifier.wrapContentHeight()

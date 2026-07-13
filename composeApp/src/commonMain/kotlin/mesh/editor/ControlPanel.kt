@@ -49,6 +49,8 @@ fun ControlPanel(
     onShowHandlesChange: (Boolean) -> Unit,
     onColorClick: (Int) -> Unit,
     onRandomize: () -> Unit,
+    keyColorDynamism: Float,
+    onKeyColorDynamismChange: (Float) -> Unit,
     onGenerateFromKeyColor: () -> Unit,
     onApplyPreset: (AnimationState) -> Unit,
     modifier: Modifier = Modifier,
@@ -117,6 +119,28 @@ fun ControlPanel(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )
+        Spacer(Modifier.height(4.dp))
+        Text("Dynamism")
+        Slider(
+            value = keyColorDynamism,
+            onValueChange = onKeyColorDynamismChange,
+            valueRange = 0f..1f,
+        )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                "Calm",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Text(
+                "Vivid",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         Spacer(Modifier.height(4.dp))
         OutlinedButton(onClick = onGenerateFromKeyColor, modifier = Modifier.fillMaxWidth()) {
             Text("Generate animation from key color")

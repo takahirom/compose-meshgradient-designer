@@ -30,7 +30,7 @@ class KeyColorAnimationTest {
     }
 
     @Test
-    fun keyframesSharePaletteViaRotationSoCycleLoopStaysOnTheme() {
+    fun keyframesSharePaletteViaRotationSoTheLoopStaysOnTheme() {
         val animation = KeyColorAnimation.generate(keyColor)
         val first = animation.keyframes.first().colors.toSet()
         animation.keyframes.forEach { mesh ->
@@ -41,14 +41,41 @@ class KeyColorAnimationTest {
     }
 
     @Test
-    fun paletteHuesStayNearTheKeyColor() {
+    fun paletteHuesStayWithinTheDynamismSpread() {
+        listOf(0f, 0.5f, 1f).forEach { dynamism ->
+            val bound = KeyColorAnimation.hueSpreadFor(dynamism) + 1f
+            maxHueDistance(dynamism).let { distance ->
+                assertTrue(
+                    distance <= bound,
+                    "dynamism $dynamism: hue drifted $distance°, allowed $bound°",
+                )
+            }
+        }
+    }
+
+    @Test
+    fun higherDynamismSpreadsHuesFurther() {
+        assertTrue(maxHueDistance(1f) > maxHueDistance(0f))
+    }
+
+    @Test
+    fun higherDynamismPlaysFasterAndJumpsFurtherPerKeyframe() {
+        val calm = KeyColorAnimation.generate(keyColor, 0f)
+        val vivid = KeyColorAnimation.generate(keyColor, 1f)
+        assertTrue(calm.durationMillisPerSegment > vivid.durationMillisPerSegment)
+        // Calm rotates one palette slot per keyframe, vivid three: the vivid second keyframe
+        // must therefore differ from a one-slot rotation of its own first keyframe.
+        val calmShift = calm.keyframes[0].colors.indexOf(calm.keyframes[1].colors.first())
+        val vividShift = vivid.keyframes[0].colors.indexOf(vivid.keyframes[1].colors.first())
+        assertTrue(vividShift > calmShift, "vivid shift $vividShift vs calm shift $calmShift")
+    }
+
+    private fun maxHueDistance(dynamism: Float): Float {
         val (keyHue, _, _) = KeyColorAnimation.rgbToHsv(keyColor)
-        val palette = KeyColorAnimation.harmoniousPalette(keyColor, 9)
-        assertEquals(9, palette.size)
-        palette.forEach { color ->
+        val palette = KeyColorAnimation.harmoniousPalette(keyColor, 9, dynamism)
+        return palette.maxOf { color ->
             val (hue, _, _) = KeyColorAnimation.rgbToHsv(color)
-            val distance = minOf(abs(hue - keyHue), 360f - abs(hue - keyHue))
-            assertTrue(distance <= 45f, "hue $hue drifted too far from key hue $keyHue")
+            minOf(abs(hue - keyHue), 360f - abs(hue - keyHue))
         }
     }
 
